@@ -6,157 +6,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #main-holder {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        #logout {
+            display: none;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background-color: #3a3a3a;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #check-profile {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #login-form {
+            display: grid;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .login-form-field {
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #login-form-submit {
+            padding: 10px;
+            background-color: #3a3a3a;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #login-error-msg {
+            display: none;
+            background-color: #ffdddd;
+            color: #d9534f;
+            border: 1px solid #d9534f;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        #user-info-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        #user-info-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #user-info {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: anywhere;
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #333;
+        }
+    </style>
 </head>
 
 <body>
-<main id="main-holder">
-    <button id="logout-button" style="display: none;">Logout</button>
-
+<div id="main-holder">
+    <button id="logout">Logout</button>
     <h1 id="login-header">Login</h1>
-
-    <div id="login-error-msg-holder">
-        <p id="login-error-msg">Invalid username <span id="error-msg-second-line">and/or password</span></p>
-    </div>
-
+    <div id="login-error-msg">Invalid username and/or password</div>
     <form id="login-form">
         <input type="text" id="username-field" class="login-form-field" placeholder="Username">
         <input type="password" id="password-field" class="login-form-field" placeholder="Password">
         <button id="login-form-submit">Login</button>
     </form>
-
-    <h2 id="user-info-header" style="display: none;">User Information:</h2>
-    <pre id="user-info" style="display: none;"></pre>
-</main>
-</body>
-
-<style>
-    #user-info-header,
-    #user-info {
-        display: none;
-    }
-
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        display: grid;
-        place-items: center;
-        height: 100vh;
-        margin: 0;
-        background-color: #3a3a3a;
-    }
-
-    #logout-button {
-        margin-bottom: 20px;
-        padding: 7px 15px;
-        border: none;
-        border-radius: 5px;
-        color: white;
-        font-weight: bold;
-        background-color: #3a3a3a;
-        cursor: pointer;
-        outline: none;
-        display: none;
-    }
-
-    #main-holder {
-        width: 50%;
-        height: 70%;
-        display: grid;
-        justify-items: center;
-        align-items: center;
-        background-color: white;
-        border-radius: 7px;
-        box-shadow: 0 0 5px 2px black;
-    }
-
-    #user-info {
-        width: 80%;
-        max-width: 600px;
-        margin: 20px auto;
-        padding: 15px;
-        background: #f9f9f9;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        white-space: pre-wrap;
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 14px;
-        color: #333;
-        text-align: left;
-    }
-
-    #login-error-msg-holder {
-        width: 100%;
-        height: 100%;
-        display: grid;
-        justify-items: center;
-        align-items: center;
-    }
-
-    #login-error-msg {
-        width: 23%;
-        text-align: center;
-        margin: 0;
-        padding: 5px;
-        font-size: 12px;
-        font-weight: bold;
-        color: #8a0000;
-        border: 1px solid #8a0000;
-        background-color: #e58f8f;
-        opacity: 0;
-    }
-
-    #error-msg-second-line {
-        display: block;
-    }
-
-    #login-form {
-        align-self: flex-start;
-        display: grid;
-        justify-items: center;
-        align-items: center;
-    }
-
-    .login-form-field::placeholder {
-        color: #3a3a3a;
-    }
-
-    .login-form-field {
-        border: none;
-        border-bottom: 1px solid #3a3a3a;
-        margin-bottom: 10px;
-        border-radius: 3px;
-        outline: none;
-        padding: 0 0 5px 5px;
-    }
-
-    #login-form-submit {
-        width: 100%;
-        padding: 7px;
-        border: none;
-        border-radius: 5px;
-        color: white;
-        font-weight: bold;
-        background-color: #3a3a3a;
-        cursor: pointer;
-        outline: none;
-    }
-</style>
-
+    <button id="check-profile">Check Profile Access</button>
+    <div id="user-info-container">
+        <h2 id="user-info-header">User Information:</h2>
+        <pre id="user-info"></pre>
+    </div>
+</div>
 <script>
     const loginButton = document.getElementById("login-form-submit");
-    const logoutButton = document.getElementById("logout-button");
+    const logoutButton = document.getElementById("logout");
+    const checkProfileButton = document.getElementById("check-profile");
     const errorMsg = document.getElementById("login-error-msg");
-    const userInfoHeader = document.getElementById("user-info-header");
+    const userInfoContainer = document.getElementById("user-info-container");
     const userInfo = document.getElementById("user-info");
     const usernameField = document.getElementById("username-field");
     const passwordField = document.getElementById("password-field");
 
+    let authToken = null;
+
     usernameField.addEventListener("input", () => {
-        errorMsg.style.opacity = 0;
+        errorMsg.style.display = "none";
     });
 
     passwordField.addEventListener("input", () => {
-        errorMsg.style.opacity = 0;
+        errorMsg.style.display = "none";
     });
 
     loginButton.addEventListener("click", async (e) => {
@@ -166,26 +157,39 @@
 
         try {
             const response = await axios.post("/api/login", { username, password });
-            const { token } = response.data;
+            authToken = response.data.token;
 
-            const userResponse = await axios.get(`/api/profile?token=${token}`);
-
-            userInfoHeader.style.display = "block";
-            userInfo.style.display = "block";
-            userInfo.innerText = JSON.stringify(userResponse.data, null, 2);
-
-            errorMsg.style.opacity = 0;
-            logoutButton.style.display = "block";
-            loginButton.style.display = "none";
+            errorMsg.style.display = "none";
+            logoutButton.style.display = "inline-block";
+            checkProfileButton.style.display = "inline-block";
             usernameField.disabled = true;
             passwordField.disabled = true;
+            loginButton.style.display = "none";
         } catch (error) {
-            errorMsg.style.opacity = 1;
-            userInfoHeader.style.display = "none";
-            userInfo.style.display = "none";
-            userInfo.innerText = "";
+            errorMsg.style.display = "block";
         }
     });
+
+    checkProfileButton.addEventListener("click", async () => {
+        if (!authToken) {
+            userInfo.innerText = "You are not logged in. Please log in to access your profile.";
+            userInfoContainer.style.display = "block";
+            return;
+        }
+
+        try {
+            const userResponse = await axios.get(`/api/user-management-profile`, {
+                headers: { Authorization: `Bearer ${authToken}` },
+            });
+            userInfo.innerText = JSON.stringify(userResponse.data, null, 2);
+        } catch (error) {
+            userInfo.innerText = error.response?.data?.error || error.response?.data?.details
+                || "An unexpected error occurred.";
+        }
+
+        userInfoContainer.style.display = "block";
+    });
+
 
     logoutButton.addEventListener("click", async () => {
         try {
@@ -196,5 +200,6 @@
         }
     });
 </script>
+</body>
 
 </html>

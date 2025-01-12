@@ -10,13 +10,20 @@ const fs = require('fs');
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
 const CLIENT_ID = process.env.AUTH0_CLIENT_ID;
 const CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET;
+const API_IDENTIFIER = process.env.AUTH0_API_IDENTIFIER;
 
 const SESSION_KEY = 'Authorization';
 const app = express();
 const port = 3000;
+const {auth} = require('express-oauth2-jwt-bearer');
+
+const checkJwt = auth({
+    audience: API_IDENTIFIER,
+    issuerBaseURL: `https://${AUTH0_DOMAIN}/`,
+});
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({extended: true}));
 
 class Session {
     constructor() {
@@ -68,43 +75,41 @@ app.use((req, res, next) => {
 });
 
 app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
+    const {username, password} = req.body;
 
     try {
         const response = await axios.post(`https://${AUTH0_DOMAIN}/oauth/token`, {
             grant_type: 'password',
             username,
             password,
-            audience: `https://${AUTH0_DOMAIN}/userinfo`,
+            audience: API_IDENTIFIER,
             client_id: CLIENT_ID,
             client_secret: CLIENT_SECRET,
         });
 
         req.session.token = response.data.access_token;
-
-        res.json({ token: response.data.access_token, expiresIn: response.data.expires_in });
+        res.json({token: response.data.access_token, expiresIn: response.data.expires_in});
     } catch (error) {
         const errorMsg = error.response?.data || 'An unexpected error occurred';
         console.error('Auth0 Login Error:', errorMsg);
-        res.status(error.response?.status || 500).json({ error: errorMsg });
+        res.status(error.response?.status || 500).json({error: errorMsg});
     }
 });
 
-app.get('/api/profile', async (req, res) => {
-    const { token } = req.query;
-
-    if (!token) {
-        return res.status(401).json({ error: 'Access token is required' });
-    }
+app.get('/api/user-management-profile', checkJwt, async (req, res) => {
+    console.log('Authorization Header:', req.headers.authorization);
+    console.log('Decoded Auth Object:', req.auth);
 
     try {
-        const userInfo = await axios.get(`https://${AUTH0_DOMAIN}/userinfo`, {
-            headers: { Authorization: `Bearer ${token}` },
+        const userInfo = await axios.get(`${API_IDENTIFIER}users/${req.auth.payload.sub}`, {
+            headers: {
+                Authorization: `Bearer ${req.headers.authorization.split(' ')[1]}`,
+            },
         });
         res.json(userInfo.data);
     } catch (error) {
         const errorMsg = error.response?.data || 'An unexpected error occurred';
-        console.error('Error fetching profile:', errorMsg);
+        console.error('Error fetching user management profile:', errorMsg);
         res.status(error.response?.status || 500).json({ error: errorMsg });
     }
 });
