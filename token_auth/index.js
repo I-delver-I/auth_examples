@@ -1,137 +1,121 @@
-const uuid = require('uuid');
+require('dotenv').config();
 const express = require('express');
-const onFinished = require('on-finished');
 const bodyParser = require('body-parser');
+const axios = require('axios');
 const path = require('path');
-const port = 3000;
+const onFinished = require('on-finished');
+const uuid = require('uuid');
 const fs = require('fs');
 
+const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
+const CLIENT_ID = process.env.AUTH0_CLIENT_ID;
+const CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET;
+
+const SESSION_KEY = 'Authorization';
 const app = express();
+const port = 3000;
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const SESSION_KEY = 'Authorization';
-
 class Session {
-    #sessions = {}
-
     constructor() {
+        this.sessions = {};
         try {
-            this.#sessions = fs.readFileSync('./sessions.json', 'utf8');
-            this.#sessions = JSON.parse(this.#sessions.trim());
-
-            console.log(this.#sessions);
-        } catch(e) {
-            this.#sessions = {};
+            const data = fs.readFileSync('./sessions.json', 'utf8');
+            this.sessions = JSON.parse(data.trim() || '{}');
+        } catch {
+            this.sessions = {};
         }
     }
 
-    #storeSessions() {
-        fs.writeFileSync('./sessions.json', JSON.stringify(this.#sessions), 'utf-8');
+    storeSessions() {
+        fs.writeFileSync('./sessions.json', JSON.stringify(this.sessions), 'utf-8');
     }
 
-    set(key, value) {
-        if (!value) {
-            value = {};
-        }
-        this.#sessions[key] = value;
-        this.#storeSessions();
+    set(key, value = {}) {
+        this.sessions[key] = value;
+        this.storeSessions();
     }
 
     get(key) {
-        return this.#sessions[key];
+        return this.sessions[key];
     }
 
-    init(res) {
+    init() {
         const sessionId = uuid.v4();
         this.set(sessionId);
-
         return sessionId;
     }
 
-    destroy(req, res) {
-        const sessionId = req.sessionId;
-        delete this.#sessions[sessionId];
-        this.#storeSessions();
+    destroy(sessionId) {
+        delete this.sessions[sessionId];
+        this.storeSessions();
     }
 }
 
 const sessions = new Session();
 
 app.use((req, res, next) => {
-    let currentSession = {};
     let sessionId = req.get(SESSION_KEY);
-
-    if (sessionId) {
-        currentSession = sessions.get(sessionId);
-        if (!currentSession) {
-            currentSession = {};
-            sessionId = sessions.init(res);
-        }
-    } else {
-        sessionId = sessions.init(res);
+    if (!sessionId) {
+        sessionId = sessions.init();
     }
-
-    req.session = currentSession;
     req.sessionId = sessionId;
-
-    onFinished(req, () => {
-        const currentSession = req.session;
-        const sessionId = req.sessionId;
-        sessions.set(sessionId, currentSession);
-    });
-
+    req.session = sessions.get(sessionId) || {};
+    onFinished(req, () => sessions.set(req.sessionId, req.session));
     next();
 });
 
-app.get('/', (req, res) => {
-    if (req.session.username) {
-        return res.json({
-            username: req.session.username,
-            logout: 'http://localhost:3000/logout'
-        })
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const response = await axios.post(`https://${AUTH0_DOMAIN}/oauth/token`, {
+            grant_type: 'password',
+            username,
+            password,
+            audience: `https://${AUTH0_DOMAIN}/userinfo`,
+            client_id: CLIENT_ID,
+            client_secret: CLIENT_SECRET,
+        });
+
+        req.session.token = response.data.access_token;
+
+        res.json({ token: response.data.access_token, expiresIn: response.data.expires_in });
+    } catch (error) {
+        const errorMsg = error.response?.data || 'An unexpected error occurred';
+        console.error('Auth0 Login Error:', errorMsg);
+        res.status(error.response?.status || 500).json({ error: errorMsg });
     }
-    res.sendFile(path.join(__dirname+'/index.html'));
-})
+});
+
+app.get('/api/profile', async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        return res.status(401).json({ error: 'Access token is required' });
+    }
+
+    try {
+        const userInfo = await axios.get(`https://${AUTH0_DOMAIN}/userinfo`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        res.json(userInfo.data);
+    } catch (error) {
+        const errorMsg = error.response?.data || 'An unexpected error occurred';
+        console.error('Error fetching profile:', errorMsg);
+        res.status(error.response?.status || 500).json({ error: errorMsg });
+    }
+});
 
 app.get('/logout', (req, res) => {
-    sessions.destroy(req, res);
+    sessions.destroy(req.sessionId);
     res.redirect('/');
 });
 
-const users = [
-    {
-        login: 'Login',
-        password: 'Password',
-        username: 'Username',
-    },
-    {
-        login: 'Login1',
-        password: 'Password1',
-        username: 'Username1',
-    }
-]
-
-app.post('/api/login', (req, res) => {
-    const { login, password } = req.body;
-
-    const user = users.find((user) => {
-        if (user.login == login && user.password == password) {
-            return true;
-        }
-        return false
-    });
-
-    if (user) {
-        req.session.username = user.username;
-        req.session.login = user.login;
-
-        res.json({ token: req.sessionId });
-    }
-
-    res.status(401).send();
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
-})
+app.listen(port, () => console.log(`Server is running at http://localhost:${port}`));
