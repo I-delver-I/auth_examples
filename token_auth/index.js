@@ -141,7 +141,6 @@ app.get('/callback', async (req, res) => {
         });
 
         req.session.token = response.data.access_token;
-        // res.redirect('/profile');
         res.sendFile(path.join(__dirname + '/index.html'));
     } catch (error) {
         console.error('Login error:', error.response ? error.response.data : error.message);
