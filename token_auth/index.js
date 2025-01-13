@@ -110,7 +110,7 @@ app.get('/api/user-management-profile', checkJwt, async (req, res) => {
     } catch (error) {
         const errorMsg = error.response?.data || 'An unexpected error occurred';
         console.error('Error fetching user management profile:', errorMsg);
-        res.status(error.response?.status || 500).json({ error: errorMsg });
+        res.status(error.response?.status || 500).json({error: errorMsg});
     }
 });
 
@@ -120,7 +120,33 @@ app.get('/logout', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.redirect(`https://${AUTH0_DOMAIN}/authorize?audience=${API_IDENTIFIER}&scope=offline_access
+    &response_type=code&redirect_uri=http://localhost:3000/callback&client_id=${CLIENT_ID}&response_mode=query`);
+});
+
+app.get('/callback', async (req, res) => {
+    const {code} = req.query;
+
+    try {
+        const response = await axios.post(`https://${AUTH0_DOMAIN}/oauth/token`, {
+            grant_type: 'authorization_code',
+            client_id: CLIENT_ID,
+            client_secret: CLIENT_SECRET,
+            code,
+            redirect_uri: `http://localhost:3000/callback`,
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        req.session.token = response.data.access_token;
+        // res.redirect('/profile');
+        res.sendFile(path.join(__dirname + '/index.html'));
+    } catch (error) {
+        console.error('Login error:', error.response ? error.response.data : error.message);
+        res.status(401).send();
+    }
 });
 
 app.listen(port, () => console.log(`Server is running at http://localhost:${port}`));
